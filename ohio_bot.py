@@ -13,7 +13,8 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.executors.pool import ThreadPoolExecutor
 
 io_timezone = pytz.timezone("America/Toronto")
-io_tweet_filename = "yes.txt"
+dayless_tweet_filename = "dayless.txt"
+day_tweet_filename = "days.txt"
 
 def pairwise(iterable): # Modified from https://stackoverflow.com/a/2315049
     "s -> (s0,s1), (s1,s2), (s2, s3), ..."
@@ -59,27 +60,36 @@ def retweet(tweetid):
     api.unretweet(tweetid)
     #api.retweet(tweetid)
 
-def retweet_random(tweetids):
+def retweet_random(daylessids, dayIds):
     import tokens
     auth = tweepy.OAuthHandler(tokens.CONSUMER_KEY, tokens.CONSUMER_SECRET)
     auth.set_access_token(tokens.ACCESS_TOKEN, tokens.ACCESS_SECRET)
 
     api = tweepy.API(auth)
 
-    tweetid = random.choice(tweetids)
+    dayString = datetime.datetime.today().strftime("%A").lower()
+
+    tweetid = 0
+    if dayString in dayIds:
+        if random.randint(1,10) <= len(dayIds[dayString]):
+            tweetid = random.choice(dayIds[dayString])
+    else:
+        tweetid = random.choice(daylessids)
 
     print("Retweeting {}".format(tweetid))
-    
+
     api.unretweet(tweetid)
     #api.retweet(tweetid)
 
 if __name__ == "__main__":
     tweetdatetimes = []
-    with open(io_tweet_filename, "r") as io_tweet_file:
-        io_tweets = json.loads(io_tweet_file.read())
+    dayTweetIds = {}
+    daylessTweetIds = []
 
-        tweetdays = []
-        io_tweet_ids = []
+    tweetdates = []
+    with open(dayless_tweet_filename, "r") as io_tweet_file:
+        io_tweets = json.loads(io_tweet_file.read())
+        
         for tweet in io_tweets:
             tweetdatetime = datetime.strptime(tweet["date"], '%Y-%m-%dT%H:%M:%S%z')
             tweetEST = tweetdatetime.astimezone(tz=io_timezone)
@@ -87,12 +97,20 @@ if __name__ == "__main__":
             ct = CronTrigger(month=tweetEST.month, day=tweetEST.day, hour=tweetEST.hour, minute=tweetEST.minute, second=tweetEST.second)
             scheduler.add_job(retweet, trigger=ct, args=(tweet["id"],))
 
-            tweetdays.append(tweetEST)
-            io_tweet_ids.append(tweet["id"])
+            tweetdates.append(tweetEST)
+            daylessTweetIds.append(tweet["id"])
 
-    for missing in missing_dates(tweetdays):
+    with open(day_tweet_filename, "r") as io_tweet_file:
+        days = json.loads(io_tweet_file.read())
+
+        for day in days:
+            dayTweetIds[day] = []
+            for tweet in days[day]:
+                dayTweetIds[day].append(tweet["id"])
+
+    for missing in missing_dates(tweetdates):
         ct = CronTrigger(month=missing.month, day=missing.day, hour=random.randint(6, 12), minute=random.randint(0, 59), second=random.randint(0, 59))
-        scheduler.add_job(retweet_random, trigger=ct, args=(io_tweet_ids,))
+        scheduler.add_job(retweet_random, trigger=ct, args=(daylessTweetIds, dayTweetIds))
 
     scheduler.print_jobs()
     print("Scheduled {} tweets!".format(len(scheduler.get_jobs())))
