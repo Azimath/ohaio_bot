@@ -25,8 +25,13 @@ def pairwise(iterable): # Modified from https://stackoverflow.com/a/2315049
 
 def missing_dates(dates): # https://stackoverflow.com/a/2315049
     for prev, curr in pairwise(sorted(dates)):
+        if prev.year == curr.year and prev.month == curr.month and prev.day == curr.day:
+            continue
+
+        prev = prev.replace(hour=0, minute=0, second=0)
+        curr = curr.replace(hour=0, minute=0, second=0)
         i = prev
-        while i + timedelta(1) < curr:
+        while i + timedelta(1.05) < curr:
             i += timedelta(1)
             yield i
 
