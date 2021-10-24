@@ -112,6 +112,6 @@ if __name__ == "__main__":
         ct = CronTrigger(month=missing.month, day=missing.day, hour=random.randint(6, 12), minute=random.randint(0, 59), second=random.randint(0, 59))
         scheduler.add_job(retweet_random, trigger=ct, args=(daylessTweetIds, dayTweetIds))
 
-    scheduler.print_jobs()
     print("Scheduled {} tweets!".format(len(scheduler.get_jobs())))
     scheduler.start()
+    
