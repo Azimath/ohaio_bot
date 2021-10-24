@@ -58,7 +58,7 @@ def retweet(tweetid):
     print("Retweeting {}".format(tweetid))
 
     api.unretweet(tweetid)
-    #api.retweet(tweetid)
+    api.retweet(tweetid)
 
 def retweet_random(daylessids, dayIds):
     import tokens
@@ -79,7 +79,7 @@ def retweet_random(daylessids, dayIds):
     print("Retweeting {}".format(tweetid))
 
     api.unretweet(tweetid)
-    #api.retweet(tweetid)
+    api.retweet(tweetid)
 
 if __name__ == "__main__":
     tweetdatetimes = []
