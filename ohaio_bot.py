@@ -41,13 +41,15 @@ def tweet(corpus, word_dict):
         chain.append(np.random.choice(word_dict[chain[-1]]))
         tweetText = ' '.join(chain)
 
-    print("Tweeting {}\n".format(tweetText))
-
     tweetText = tweetText.replace("<|endoftext|>", '')
+    tweetText = tweetText[0:279]
+
+    print("Tweeting {}\n".format(tweetText))
 
     api.update_status(tweetText)
 
 if __name__ == "__main__":
+    print("OHAAAAAIIIIOOOOO!")
     #https://towardsdatascience.com/simulating-text-with-markov-chains-in-python-1a27e6d13fc6
     text = open(corpus_filename, encoding='utf8').read()
 
@@ -69,6 +71,8 @@ if __name__ == "__main__":
 
     ct = CronTrigger(hour=8, minute=0, second=0, jitter=60*60*1)
     scheduler.add_job(tweet, trigger=ct, args=(corpus, word_dict))
+
+    print("Starting scheduler!")
 
     scheduler.start()
     
