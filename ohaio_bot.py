@@ -1,11 +1,6 @@
 import tweepy
-
 import pytz
-
-import random
-
-from datetime import datetime, timedelta
-import json
+import numpy as np
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -13,28 +8,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.executors.pool import ThreadPoolExecutor
 
 io_timezone = pytz.timezone("America/Toronto")
-dayless_tweet_filename = "dayless.txt"
-day_tweet_filename = "days.txt"
-
-def pairwise(iterable): # Modified from https://stackoverflow.com/a/2315049
-    "s -> (s0,s1), (s1,s2), (s2, s3), ..."
-    a = iter(iterable)
-    b = iter(iterable)
-
-    next(b)
-    return zip(a, b)
-
-def missing_dates(dates): # https://stackoverflow.com/a/2315049
-    for prev, curr in pairwise(sorted(dates)):
-        if prev.year == curr.year and prev.month == curr.month and prev.day == curr.day:
-            continue
-
-        prev = prev.replace(hour=0, minute=0, second=0)
-        curr = curr.replace(hour=0, minute=0, second=0)
-        i = prev
-        while i + timedelta(1.05) < curr:
-            i += timedelta(1)
-            yield i
+corpus_filename = "morning_dataset.txt"
 
 jobstores = {
     'default': MemoryJobStore()
@@ -48,70 +22,53 @@ job_defaults = {
 
 scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=io_timezone)
 
-def retweet(tweetid):
+def tweet(corpus, word_dict):
     import tokens
     auth = tweepy.OAuthHandler(tokens.CONSUMER_KEY, tokens.CONSUMER_SECRET)
     auth.set_access_token(tokens.ACCESS_TOKEN, tokens.ACCESS_SECRET)
 
     api = tweepy.API(auth)
 
-    print("Retweeting {}".format(tweetid))
+    first_word = np.random.choice(corpus)
 
-    api.unretweet(tweetid)
-    api.retweet(tweetid)
+    while first_word.islower():
+        first_word = np.random.choice(corpus)
 
-def retweet_random(daylessids, dayIds):
-    import tokens
-    auth = tweepy.OAuthHandler(tokens.CONSUMER_KEY, tokens.CONSUMER_SECRET)
-    auth.set_access_token(tokens.ACCESS_TOKEN, tokens.ACCESS_SECRET)
+    chain = [first_word]
 
-    api = tweepy.API(auth)
+    tweetText = ""
+    while len(tweetText) < 280 and not "<|endoftext|>" in tweetText:
+        chain.append(np.random.choice(word_dict[chain[-1]]))
+        tweetText = ' '.join(chain)
 
-    dayString = datetime.datetime.today().strftime("%A").lower()
+    print("Tweeting {}\n".format(tweetText))
 
-    tweetid = 0
-    if dayString in dayIds:
-        if random.randint(1,10) <= len(dayIds[dayString]):
-            tweetid = random.choice(dayIds[dayString])
-    else:
-        tweetid = random.choice(daylessids)
+    tweetText = tweetText.replace("<|endoftext|>", '')
 
-    print("Retweeting {}".format(tweetid))
-
-    api.unretweet(tweetid)
-    api.retweet(tweetid)
+    api.update_status(tweetText)
 
 if __name__ == "__main__":
-    tweetdatetimes = []
-    dayTweetIds = {}
-    daylessTweetIds = []
+    #https://towardsdatascience.com/simulating-text-with-markov-chains-in-python-1a27e6d13fc6
+    text = open(corpus_filename, encoding='utf8').read()
 
-    tweetdates = []
-    with open(dayless_tweet_filename, "r") as io_tweet_file:
-        io_tweets = json.loads(io_tweet_file.read())
-        
-        for tweet in io_tweets:
-            tweetdatetime = datetime.strptime(tweet["date"], '%Y-%m-%dT%H:%M:%S%z')
-            tweetEST = tweetdatetime.astimezone(tz=io_timezone)
+    corpus = text.split()
+
+    def make_pairs(corpus):
+        for i in range(len(corpus)-1):
+            yield (corpus[i], corpus[i+1])
             
-            ct = CronTrigger(month=tweetEST.month, day=tweetEST.day, hour=tweetEST.hour, minute=tweetEST.minute, second=tweetEST.second)
-            scheduler.add_job(retweet, trigger=ct, args=(tweet["id"],))
+    pairs = make_pairs(corpus)
 
-            tweetdates.append(tweetEST)
-            daylessTweetIds.append(tweet["id"])
+    word_dict = {}
 
-    with open(day_tweet_filename, "r") as io_tweet_file:
-        days = json.loads(io_tweet_file.read())
+    for word_1, word_2 in pairs:
+        if word_1 in word_dict.keys():
+            word_dict[word_1].append(word_2)
+        else:
+            word_dict[word_1] = [word_2]
 
-        for day in days:
-            dayTweetIds[day] = []
-            for tweet in days[day]:
-                dayTweetIds[day].append(tweet["id"])
+    ct = CronTrigger(hour=8, minute=0, second=0, jitter=60*60*1)
+    scheduler.add_job(tweet, trigger=ct, args=(corpus, word_dict))
 
-    for missing in missing_dates(tweetdates):
-        ct = CronTrigger(month=missing.month, day=missing.day, hour=random.randint(6, 12), minute=random.randint(0, 59), second=random.randint(0, 59))
-        scheduler.add_job(retweet_random, trigger=ct, args=(daylessTweetIds, dayTweetIds))
-
-    print("Scheduled {} tweets!".format(len(scheduler.get_jobs())))
     scheduler.start()
     
