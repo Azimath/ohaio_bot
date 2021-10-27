@@ -22,17 +22,14 @@ job_defaults = {
 
 scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defaults=job_defaults, timezone=io_timezone)
 
-def tweet(corpus, word_dict):
+def tweet(first_words, word_dict):
     import tokens
     auth = tweepy.OAuthHandler(tokens.CONSUMER_KEY, tokens.CONSUMER_SECRET)
     auth.set_access_token(tokens.ACCESS_TOKEN, tokens.ACCESS_SECRET)
 
     api = tweepy.API(auth)
 
-    first_word = np.random.choice(corpus)
-
-    while first_word.islower():
-        first_word = np.random.choice(corpus)
+    first_word = np.random.choice(first_words)
 
     chain = [first_word]
 
@@ -69,8 +66,10 @@ if __name__ == "__main__":
         else:
             word_dict[word_1] = [word_2]
 
-    ct = CronTrigger(hour=8, minute=0, second=0, jitter=60*60*1)
-    scheduler.add_job(tweet, trigger=ct, args=(corpus, word_dict))
+    first_words = [w for w in corpus if w.lower().startswith("o") or w.lower().startswith("good") or w.lower().startswith("g")]
+
+    ct = CronTrigger(hour=8, minute=0, second=0, jitter=60*30)
+    scheduler.add_job(tweet, trigger=ct, args=(first_words, word_dict))
 
     print("Starting scheduler!")
 
