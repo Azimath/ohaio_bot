@@ -1,6 +1,6 @@
 import tweepy
 import pytz
-import numpy as np
+import random
 
 from apscheduler.schedulers.blocking import BlockingScheduler
 from apscheduler.jobstores.memory import MemoryJobStore
@@ -29,13 +29,11 @@ def tweet(first_words, word_dict):
 
     api = tweepy.API(auth)
 
-    first_word = np.random.choice(first_words)
-
-    chain = [first_word]
+    chain = list(random.choice(first_words))
 
     tweetText = ""
     while len(tweetText) < 280 and not "<|endoftext|>" in tweetText:
-        chain.append(np.random.choice(word_dict[chain[-1]]))
+        chain.append(random.choice(word_dict[(chain[-2], chain[-1])]))
         tweetText = ' '.join(chain)
 
     tweetText = tweetText.replace("<|endoftext|>", '')
@@ -56,17 +54,22 @@ if __name__ == "__main__":
         for i in range(len(corpus)-1):
             yield (corpus[i], corpus[i+1])
             
-    pairs = make_pairs(corpus)
+    def make_trios(corpus):
+        for i in range(len(corpus)-2):
+            yield (corpus[i], corpus[i+1], corpus[i+2])
+            
+    #pairs = make_pairs(corpus)
+    trios = make_trios(corpus)
 
     word_dict = {}
 
-    for word_1, word_2 in pairs:
-        if word_1 in word_dict.keys():
-            word_dict[word_1].append(word_2)
+    for word_1, word_2, word_3 in trios:
+        if (word_1, word_2) in word_dict.keys():
+            word_dict[(word_1, word_2)].append(word_3)
         else:
-            word_dict[word_1] = [word_2]
+            word_dict[(word_1, word_2)] = [word_3]
 
-    first_words = [w for w in corpus if w.lower().startswith("o") or w.lower().startswith("good") or w.lower().startswith("g")]
+    first_words = [w for w in list(word_dict) if w[0].startswith("O") or w[0].lower().startswith("good") or w[0].startswith("G")]
 
     ct = CronTrigger(hour=8, minute=0, second=0, jitter=60*30)
     scheduler.add_job(tweet, trigger=ct, args=(first_words, word_dict))
