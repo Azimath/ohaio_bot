@@ -33,7 +33,7 @@ def tweet(first_words, word_dict_one, word_dict_two):
 
     tweetText = ""
     while len(tweetText) < 280 and not "<|endoftext|>" in tweetText:
-        if len(chain[-1]) == 1 and (chain[-2], chain[-1]) in word_dict_two.keys():
+        if len(chain[-1]) <= 2 and (chain[-2], chain[-1]) in word_dict_two.keys():
             chain.append(random.choice(word_dict_two[(chain[-2], chain[-1])]))
         else:
             chain.append(random.choice(word_dict_one[chain[-1]]))
