@@ -40,7 +40,7 @@ def tweet(first_words, word_dict_one, word_dict_two):
         tweetText = ' '.join(chain)
 
     tweetText = tweetText.replace("<|endoftext|>", '')
-    tweetText = tweetText[0:267] + " #donutthink"
+    tweetText = tweetText[0:279]
 
     print("Tweeting {}\n".format(tweetText))
 
