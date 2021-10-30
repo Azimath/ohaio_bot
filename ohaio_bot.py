@@ -33,10 +33,12 @@ def tweet(first_words, word_dict_one, word_dict_two):
 
     tweetText = ""
     while len(tweetText) < 280 and not "<|endoftext|>" in tweetText:
-        if len(chain[-1]) <= 2 and (chain[-2], chain[-1]) in word_dict_two.keys():
-            chain.append(random.choice(word_dict_two[(chain[-2], chain[-1])]))
+        lastOne = chain[-1].lower()
+        lastTwo = chain[-2].lower()
+        if len(lastOne) <= 3 and (lastTwo, lastOne) in word_dict_two.keys():
+            chain.append(random.choice(word_dict_two[(lastTwo, lastOne)]))
         else:
-            chain.append(random.choice(word_dict_one[chain[-1]]))
+            chain.append(random.choice(word_dict_one[lastOne]))
         tweetText = ' '.join(chain)
 
     tweetText = tweetText.replace("<|endoftext|>", '')
@@ -68,12 +70,15 @@ if __name__ == "__main__":
     word_dict_two = {}
 
     for word_1, word_2 in pairs:
+        word_1 = word_1.lower()
         if word_1 in word_dict_one.keys():
             word_dict_one[word_1].append(word_2)
         else:
             word_dict_one[word_1] = [word_2]
 
     for word_1, word_2, word_3 in trios:
+        word_1 = word_1.lower()
+        word_2 = word_2.lower()
         if (word_1, word_2) in word_dict_two.keys():
             word_dict_two[(word_1, word_2)].append(word_3)
         else:
