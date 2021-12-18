@@ -43,7 +43,7 @@ if __name__ == "__main__":
     corpus_data = ohaio_markov.load_corpus(corpus_filename)
 
     ct = CronTrigger(hour=8, minute=0, second=0, jitter=60*30)
-    scheduler.add_job(tweet, trigger=ct, args=(corpus_data))
+    scheduler.add_job(tweet, trigger=ct, args=(corpus_data,))
 
     print("Starting scheduler!")
 
