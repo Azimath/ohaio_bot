@@ -1,5 +1,6 @@
 import random
 import emoji
+from tweet_counter import count_tweet
 
 #https://towardsdatascience.com/simulating-text-with-markov-chains-in-python-1a27e6d13fc6
 
@@ -88,7 +89,7 @@ def generate_tweet(chain_data):
     chain = list(random.choice(first_words))
 
     tweetText = ""
-    while len(tweetText) < 280 and not "<|endoftext|>" in tweetText:
+    while not "<|endoftext|>" in tweetText:
         lastOne = mod_key(chain[-1])
         lastTwo = mod_key(chain[-2])
         if len(lastOne) <= 3 and (lastTwo, lastOne) in word_dict_two.keys():
@@ -113,7 +114,10 @@ def generate_tweet(chain_data):
         if chain[-2] == "<|emojiblock|>":
             chain[-2] = generate_emojiblock(emoji_dict_one)
         
-        tweetText = ' '.join(chain)
+        if count_tweet(' '.join(chain)) > 280:
+            break
+        else:
+            tweetText = ' '.join(chain)
 
     tweetText = tweetText.replace("<|endoftext|>", '')
     tweetText = tweetText[0:279]
