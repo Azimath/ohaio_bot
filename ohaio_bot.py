@@ -26,16 +26,20 @@ scheduler = BlockingScheduler(jobstores=jobstores, executors=executors, job_defa
 
 def tweet(corpus_data):
     import tokens
-    auth = tweepy.OAuthHandler(tokens.CONSUMER_KEY, tokens.CONSUMER_SECRET)
-    auth.set_access_token(tokens.ACCESS_TOKEN, tokens.ACCESS_SECRET)
-
-    api = tweepy.API(auth)
+    client = tweepy.Client(
+        consumer_key=tokens.CONSUMER_KEY, consumer_secret=tokens.CONSUMER_SECRET,
+        access_token=tokens.ACCESS_TOKEN, access_token_secret=tokens.ACCESS_SECRET
+    )
 
     tweetText = ohaio_markov.generate_tweet(corpus_data)
 
     print("Tweeting {}\n".format(tweetText))
 
-    api.update_status(tweetText)
+    client.create_tweet(text=tweetText)
+
+def test_tweet():
+    corpus_data = ohaio_markov.load_corpus(corpus_filename)
+    tweet(corpus_data)
 
 if __name__ == "__main__":
     print("OHAAAAAIIIIOOOOO!")
